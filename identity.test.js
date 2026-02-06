@@ -1,4 +1,4 @@
-import { validateIdentity } from "./validator";
+import { validateIdentity } from "./identity";
 
 /**
  * @function validateIdentity
