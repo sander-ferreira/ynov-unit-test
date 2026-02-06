@@ -6,9 +6,11 @@ import { calculateAge } from "./module";
 describe("calculateAge Unit Test Suites", () => {
   it("should return a correct age", () => {
     const sander = {
-      birth: new Date("1999-07-20"),
+      birth: new Date("1999-01-01"),
     };
-    expect(calculateAge(sander)).toEqual(new Date().getFullYear() - 1999);
+    const now = new Date();
+    const expected = now.getFullYear() - 1999 - (now < new Date(now.getFullYear(), 0, 1) ? 1 : 0);
+    expect(calculateAge(sander)).toEqual(expected);
   });
 
   it('should throw a "missing param p" error', () => {

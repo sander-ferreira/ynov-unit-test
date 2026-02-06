@@ -20,7 +20,13 @@ export function calculateAge(p) {
   if (isNaN(p.birth.getTime())) {
     throw new Error("wrong date format");
   }
+  if (p.birth.getTime() > Date.now()) {
+    throw new Error("invalid birth date");
+  }
   let dateDiff = new Date(Date.now() - p.birth.getTime());
   let age = Math.abs(dateDiff.getUTCFullYear() - 1970);
+  if (age < 18) {
+    throw new Error("underage");
+  }
   return age;
 }
