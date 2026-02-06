@@ -1,4 +1,4 @@
-import { validatePostalCode } from "./validator";
+import { validatePostalCode } from "./postal-code";
 
 /**
  * @function validatePostalCode
