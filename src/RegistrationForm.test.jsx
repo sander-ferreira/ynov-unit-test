@@ -5,12 +5,24 @@
 import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
+import { UsersProvider } from "./UsersContext";
 import { RegistrationForm } from "./RegistrationForm";
+
+function renderForm() {
+  return render(
+    <UsersProvider>
+      <MemoryRouter initialEntries={["/register"]}>
+        <RegistrationForm />
+      </MemoryRouter>
+    </UsersProvider>
+  );
+}
 
 describe("RegistrationForm Integration Tests", () => {
   describe("Rendering", () => {
     it("should render all form fields", () => {
-      render(<RegistrationForm />);
+      renderForm();
       expect(screen.getByLabelText(/^nom$/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/prénom/i)).toBeInTheDocument();
       expect(screen.getByLabelText(/email/i)).toBeInTheDocument();
@@ -20,7 +32,7 @@ describe("RegistrationForm Integration Tests", () => {
     });
 
     it("should render a disabled submit button initially", () => {
-      render(<RegistrationForm />);
+      renderForm();
       expect(screen.getByRole("button", { name: /envoyer/i })).toBeDisabled();
     });
   });
@@ -28,21 +40,21 @@ describe("RegistrationForm Integration Tests", () => {
   describe("Field validation - immediate feedback", () => {
     it("should show error for invalid nom (numbers)", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await user.type(screen.getByLabelText(/^nom$/i), "Jean123");
       expect(screen.getByText(/invalid identity/i)).toBeInTheDocument();
     });
 
     it("should show error for XSS in nom", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await user.type(screen.getByLabelText(/^nom$/i), "<script>alert</script>");
       expect(screen.getByText(/xss detected/i)).toBeInTheDocument();
     });
 
     it("should clear error when nom is corrected", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await user.type(screen.getByLabelText(/^nom$/i), "123");
       expect(screen.getByText(/invalid identity/i)).toBeInTheDocument();
       await user.clear(screen.getByLabelText(/^nom$/i));
@@ -52,20 +64,20 @@ describe("RegistrationForm Integration Tests", () => {
 
     it("should show error for invalid email", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await user.type(screen.getByLabelText(/email/i), "not-an-email");
       expect(screen.getByText(/invalid email/i)).toBeInTheDocument();
     });
 
     it("should show error for invalid postal code", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await user.type(screen.getByLabelText(/code postal/i), "ABC");
       expect(screen.getByText(/invalid postal code/i)).toBeInTheDocument();
     });
 
     it("should show error for underage date of birth", () => {
-      render(<RegistrationForm />);
+      renderForm();
       const dateInput = screen.getByLabelText(/date de naissance/i);
       const recentDate = new Date();
       recentDate.setFullYear(recentDate.getFullYear() - 10);
@@ -77,14 +89,14 @@ describe("RegistrationForm Integration Tests", () => {
 
     it("should show error for XSS in ville", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await user.type(screen.getByLabelText(/ville/i), "<img src=x>");
       expect(screen.getByText(/xss detected/i)).toBeInTheDocument();
     });
 
     it("should validate on blur", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       const nomInput = screen.getByLabelText(/^nom$/i);
       await user.type(nomInput, "A");
       await user.clear(nomInput);
@@ -107,14 +119,14 @@ describe("RegistrationForm Integration Tests", () => {
 
     it("should enable button when all fields are valid", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await fillFormValid(user);
       expect(screen.getByRole("button", { name: /envoyer/i })).toBeEnabled();
     });
 
     it("should disable button when a field becomes invalid", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await fillFormValid(user);
       expect(screen.getByRole("button", { name: /envoyer/i })).toBeEnabled();
       await user.clear(screen.getByLabelText(/email/i));
@@ -126,7 +138,7 @@ describe("RegistrationForm Integration Tests", () => {
   describe("Chaotic user scenario", () => {
     it("should handle invalid inputs, corrections, re-corruption, and final submission", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       const button = screen.getByRole("button", { name: /envoyer/i });
 
       // Types numbers in nom
@@ -217,7 +229,7 @@ describe("RegistrationForm Integration Tests", () => {
     it("should save to localStorage on submit", async () => {
       const spy = jest.spyOn(Storage.prototype, "setItem");
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 
@@ -237,7 +249,7 @@ describe("RegistrationForm Integration Tests", () => {
 
     it("should show success message after submit", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 
@@ -246,7 +258,7 @@ describe("RegistrationForm Integration Tests", () => {
 
     it("should clear all fields after submit", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 
@@ -260,7 +272,7 @@ describe("RegistrationForm Integration Tests", () => {
 
     it("should disable button after submit (fields are empty)", async () => {
       const user = userEvent.setup();
-      render(<RegistrationForm />);
+      renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 

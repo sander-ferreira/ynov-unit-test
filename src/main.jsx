@@ -1,5 +1,5 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
-import { RegistrationForm } from "./RegistrationForm";
+import { App } from "./App";
 
-createRoot(document.getElementById("root")).render(<RegistrationForm />);
+createRoot(document.getElementById("root")).render(<App />);

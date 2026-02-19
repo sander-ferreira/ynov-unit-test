@@ -11,7 +11,7 @@ describe("Registration Form E2E", () => {
   };
 
   beforeEach(() => {
-    cy.visit("/");
+    cy.visit("/register");
   });
 
   it("should fill the form with valid data and submit successfully", () => {

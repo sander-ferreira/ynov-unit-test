@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useUsers } from "./UsersContext";
 import { validateIdentity } from "../identity";
 import { validateEmail } from "../email";
 import { calculateAge } from "../module";
@@ -53,6 +55,8 @@ const initialValues = {
  * @returns {JSX.Element}
  */
 export function RegistrationForm() {
+  const navigate = useNavigate();
+  const { addUser } = useUsers();
   const [values, setValues] = useState({ ...initialValues });
   const [errors, setErrors] = useState({ ...initialValues });
   const [touched, setTouched] = useState({});
@@ -81,10 +85,12 @@ export function RegistrationForm() {
     e.preventDefault();
     if (!isFormValid) return;
     localStorage.setItem("formData", JSON.stringify(values));
+    addUser(values);
     setShowSuccess(true);
     setValues({ ...initialValues });
     setErrors({ ...initialValues });
     setTouched({});
+    navigate("/");
   }
 
   return (
