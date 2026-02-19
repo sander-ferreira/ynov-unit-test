@@ -25,8 +25,7 @@ describe("Registration Form E2E", () => {
     cy.get('button[type="submit"]').should("not.be.disabled");
     cy.get('button[type="submit"]').click();
 
-    cy.get('[role="alert"]').should("be.visible");
-    cy.get("#nom").should("have.value", "");
+    cy.url().should("not.include", "/register");
   });
 
   it("should show error for invalid email and disable submit", () => {
