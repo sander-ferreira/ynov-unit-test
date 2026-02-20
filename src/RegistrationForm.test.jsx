@@ -6,18 +6,31 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
-import { UsersProvider } from "./UsersContext";
 import { RegistrationForm } from "./RegistrationForm";
+
+// Mock axios so no real network calls leave the tests
+jest.mock("axios");
+import axios from "axios";
+
+// Mock useNavigate to capture navigation calls
+const mockNavigate = jest.fn();
+jest.mock("react-router-dom", () => ({
+  ...jest.requireActual("react-router-dom"),
+  useNavigate: () => mockNavigate,
+}));
 
 function renderForm() {
   return render(
-    <UsersProvider>
-      <MemoryRouter initialEntries={["/register"]}>
-        <RegistrationForm />
-      </MemoryRouter>
-    </UsersProvider>
+    <MemoryRouter initialEntries={["/register"]}>
+      <RegistrationForm />
+    </MemoryRouter>,
   );
 }
+
+beforeEach(() => {
+  mockNavigate.mockClear();
+  axios.post.mockClear();
+});
 
 describe("RegistrationForm Integration Tests", () => {
   describe("Rendering", () => {
@@ -214,7 +227,7 @@ describe("RegistrationForm Integration Tests", () => {
     });
   });
 
-  describe("Form submission", () => {
+  describe("Form submission - API mocks", () => {
     async function fillFormValid(user) {
       await user.type(screen.getByLabelText(/^nom$/i), "Ferreira");
       await user.type(screen.getByLabelText(/prénom/i), "Sander");
@@ -226,57 +239,57 @@ describe("RegistrationForm Integration Tests", () => {
       await user.type(screen.getByLabelText(/ville/i), "Paris");
     }
 
-    it("should save to localStorage on submit", async () => {
-      const spy = jest.spyOn(Storage.prototype, "setItem");
+    it("Succès (201) : should call API and navigate to /", async () => {
+      axios.post.mockResolvedValue({ status: 201, data: { id: 1 } });
+
       const user = userEvent.setup();
       renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 
-      expect(spy).toHaveBeenCalledWith(
-        "formData",
-        JSON.stringify({
-          nom: "Ferreira",
-          prenom: "Sander",
-          email: "sander@example.com",
-          dateNaissance: "1999-07-20",
-          cp: "75001",
-          ville: "Paris",
-        }),
-      );
-      spy.mockRestore();
+      await waitFor(() => {
+        expect(axios.post).toHaveBeenCalledWith(
+          "https://jsonplaceholder.typicode.com/users",
+          expect.objectContaining({ nom: "Ferreira", email: "sander@example.com" }),
+        );
+        expect(mockNavigate).toHaveBeenCalledWith("/");
+      });
     });
 
-    it("should show success message after submit", async () => {
+    it("Erreur métier (400) : should display server error message", async () => {
+      axios.post.mockRejectedValue({
+        response: { status: 400, data: { message: "Email déjà existant" } },
+      });
+
       const user = userEvent.setup();
       renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 
-      expect(screen.getByRole("alert")).toHaveTextContent(/fonctioooonne/i);
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          "Email déjà existant",
+        );
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
 
-    it("should clear all fields after submit", async () => {
+    it("Crash serveur (500) : should display generic error, app must not crash", async () => {
+      axios.post.mockRejectedValue({
+        response: { status: 500 },
+      });
+
       const user = userEvent.setup();
       renderForm();
       await fillFormValid(user);
       await user.click(screen.getByRole("button", { name: /envoyer/i }));
 
-      expect(screen.getByLabelText(/^nom$/i)).toHaveValue("");
-      expect(screen.getByLabelText(/prénom/i)).toHaveValue("");
-      expect(screen.getByLabelText(/email/i)).toHaveValue("");
-      expect(screen.getByLabelText(/date de naissance/i)).toHaveValue("");
-      expect(screen.getByLabelText(/code postal/i)).toHaveValue("");
-      expect(screen.getByLabelText(/ville/i)).toHaveValue("");
-    });
-
-    it("should disable button after submit (fields are empty)", async () => {
-      const user = userEvent.setup();
-      renderForm();
-      await fillFormValid(user);
-      await user.click(screen.getByRole("button", { name: /envoyer/i }));
-
-      expect(screen.getByRole("button", { name: /envoyer/i })).toBeDisabled();
+      await waitFor(() => {
+        expect(screen.getByRole("alert")).toHaveTextContent(
+          /erreur serveur/i,
+        );
+      });
+      expect(mockNavigate).not.toHaveBeenCalled();
     });
   });
 });
