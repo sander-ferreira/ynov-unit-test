@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useUsers } from "./UsersContext";
 import { validateIdentity } from "../identity";
 import { validateEmail } from "../email";
 import { calculateAge } from "../module";
 import { validatePostalCode } from "../postal-code";
+import { postUser } from "./api";
 
 /**
  * Validate a single form field using the appropriate validator.
@@ -50,17 +50,16 @@ const initialValues = {
 
 /**
  * Registration form component with real-time validation.
- * Uses validators from the business logic layer.
- * On valid submission, saves data to localStorage and shows a success message.
+ * On valid submission, calls the API (POST) and navigates to home on success.
+ * Displays server error messages for 400 (business error) and 500 (crash).
  * @returns {JSX.Element}
  */
 export function RegistrationForm() {
   const navigate = useNavigate();
-  const { addUser } = useUsers();
   const [values, setValues] = useState({ ...initialValues });
   const [errors, setErrors] = useState({ ...initialValues });
   const [touched, setTouched] = useState({});
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [apiError, setApiError] = useState(null);
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -81,16 +80,22 @@ export function RegistrationForm() {
     Object.values(values).every((v) => v !== "") &&
     Object.keys(values).every((k) => validateField(k, values[k]) === "");
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
     if (!isFormValid) return;
-    localStorage.setItem("formData", JSON.stringify(values));
-    addUser(values);
-    setShowSuccess(true);
-    setValues({ ...initialValues });
-    setErrors({ ...initialValues });
-    setTouched({});
-    navigate("/");
+    setApiError(null);
+    try {
+      await postUser(values);
+      navigate("/");
+    } catch (err) {
+      if (err.response?.status === 400) {
+        setApiError(
+          err.response.data?.message || "Erreur de validation.",
+        );
+      } else {
+        setApiError("Une erreur serveur est survenue. Veuillez réessayer.");
+      }
+    }
   }
 
   return (
@@ -189,7 +194,7 @@ export function RegistrationForm() {
         Envoyer
       </button>
 
-      {showSuccess && <div role="alert">ça fonctioooonne</div>}
+      {apiError && <div role="alert">{apiError}</div>}
     </form>
   );
 }
