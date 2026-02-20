@@ -48,7 +48,7 @@ jobs:
         run: npm run test:e2e
 
       - name: Build
-        run: npm run build
+        run: npm run build -- --base=/ynov-unit-test/
         env:
           VITE_API_URL: https://jsonplaceholder.typicode.com/users
 
